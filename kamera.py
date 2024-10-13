@@ -111,36 +111,37 @@ try:
         cv2.rectangle(frame, (right_margin, 0), (width, height), (255, 0, 0), 2)  # Right margin
 
         # Control the motors based on detection and margin logic
+        # merah kanan
         if detected_red and detected_green:
             if red_center[0] < left_margin and green_center[0] > right_margin:  # both in correct place
-                set_motor_left(90)
-                set_motor_right(90)
+                set_motor_left(50)
+                set_motor_right(41)
                 print("Two balls detected at normal place")
             else:  # wrong position
-                set_motor_left(75) 
-                set_motor_right(0)
+                set_motor_left(50) 
+                set_motor_right(41)
                 print("Maybe both balls at center place or wrong combination color")
         elif detected_red:
             if red_center[0] < left_margin:  # Left margin
-                set_motor_left(90)
-                set_motor_right(0)
+                set_motor_left(50)
+                set_motor_right(41)
                 print("Just red")
             else:
-                set_motor_left(75)
-                set_motor_right(0)
-                print("Move left")
+                set_motor_left(50)
+                set_motor_right(44)
+                print("Move left") #kanan
         elif detected_green:
             if green_center[0] > right_margin:  # Right margin
-                set_motor_left(0)
-                set_motor_right(90)
+                set_motor_left(50)
+                set_motor_right(41)
                 print("Just green")
             else:
-                set_motor_left(0)
-                set_motor_right(75)
-                print("Move right")
+                set_motor_left(47)
+                set_motor_right(41)
+                print("Move right") #kiri
         else:
-            set_motor_left(75)
-            set_motor_right(0)
+            set_motor_left(50)
+            set_motor_right(41)
             print("Move until find ball")
 
         cv2.imshow("Frame", frame)
