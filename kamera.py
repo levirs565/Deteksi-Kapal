@@ -1,5 +1,3 @@
-from collections import deque
-import numpy as np
 import argparse
 import cv2
 import time
@@ -54,6 +52,25 @@ def set_motor_right(duty_cycle):
     motorRight.value = max(0, min(duty_cycle / 100, 1))
     print(f"Set motor at pin {PINRight} speed to {duty_cycle}%")
 
+lintasan_b = False
+forward_duty_cycle_left = 50
+forward_duty_cycle_right = 41
+
+# 0 = forward, -1 = kiri, 1 = kanan
+def set_direction(dir):
+    if dir == 0:
+        set_motor_left(forward_duty_cycle_left)
+        set_motor_right(forward_duty_cycle_right)
+        print("Move forward")
+    elif dir == -1:
+        set_motor_left(forward_duty_cycle_left - 3)
+        set_motor_right(forward_duty_cycle_right)
+        print("Move left")
+    elif dir == 1:
+        set_motor_left(forward_duty_cycle_left)
+        set_motor_right(forward_duty_cycle_right - 3)
+        print("Move right")
+
 try:
     print("Starting motors...")
     
@@ -85,26 +102,32 @@ try:
         red_cnts, _ = cv2.findContours(redMask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         green_cnts, _ = cv2.findContours(greenMask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        detected_red = False
-        detected_green = False
-        red_center = None
-        green_center = None
+        left_ball_detected = False
+        right_ball_detected = False
+        left_ball_center = None
+        right_ball_center = None
 
+        # Assume in Lintasan A
         if red_cnts:
             largest_red = max(red_cnts, key=cv2.contourArea)
             M = cv2.moments(largest_red)
             if M["m00"] > 0:
-                red_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-                detected_red = True
-                cv2.circle(frame, red_center, 5, (0, 0, 255), -1)
+                left_ball_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                left_ball_detected = True
+                cv2.circle(frame, left_ball_center, 5, (0, 0, 255), -1)
 
         if green_cnts:
             largest_green = max(green_cnts, key=cv2.contourArea)
             M = cv2.moments(largest_green)
             if M["m00"] > 0:
-                green_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-                detected_green = True
-                cv2.circle(frame, green_center, 5, (0, 255, 0), -1)
+                right_ball_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                right_ball_detected = True
+                cv2.circle(frame, right_ball_center, 5, (0, 255, 0), -1)
+
+        # When in Lintasan B, swap
+        if (lintasan_b):
+            left_ball_detected, right_ball_detected = right_ball_detected, left_ball_detected
+            left_ball_center, right_ball_center = right_ball_center, left_ball_center
 
         # Draw the margin areas
         cv2.rectangle(frame, (0, 0), (left_margin, height), (255, 0, 0), 2)  # Left margin
@@ -112,36 +135,27 @@ try:
 
         # Control the motors based on detection and margin logic
         # merah kanan
-        if detected_red and detected_green:
-            if red_center[0] < left_margin and green_center[0] > right_margin:  # both in correct place
-                set_motor_left(50)
-                set_motor_right(41)
+        if left_ball_detected and right_ball_detected:
+            if left_ball_center[0] < left_margin and right_ball_center[0] > right_margin:  # both in correct place
+                set_direction(0)
                 print("Two balls detected at normal place")
             else:  # wrong position
-                set_motor_left(50) 
-                set_motor_right(41)
+                set_direction(0)
                 print("Maybe both balls at center place or wrong combination color")
-        elif detected_red:
-            if red_center[0] < left_margin:  # Left margin
-                set_motor_left(50)
-                set_motor_right(41)
+        elif left_ball_detected:
+            if left_ball_center[0] < left_margin:  # Left margin
+                set_direction(0)
                 print("Just red")
             else:
-                set_motor_left(50)
-                set_motor_right(44)
-                print("Move left") #kanan
-        elif detected_green:
-            if green_center[0] > right_margin:  # Right margin
-                set_motor_left(50)
-                set_motor_right(41)
+                set_direction(1)
+        elif right_ball_detected:
+            if right_ball_center[0] > right_margin:  # Right margin
+                set_direction(0)
                 print("Just green")
             else:
-                set_motor_left(47)
-                set_motor_right(41)
-                print("Move right") #kiri
+                set_direction(-1)
         else:
-            set_motor_left(50)
-            set_motor_right(41)
+            set_direction(0)
             print("Move until find ball")
 
         cv2.imshow("Frame", frame)
