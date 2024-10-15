@@ -2,6 +2,7 @@ import argparse
 import cv2
 import time
 from gpiozero import PWMOutputDevice
+import core
 
 # Pin definitions for motors
 PINLeft = 4   # GPIO 4 corresponds to physical pin 7
@@ -14,16 +15,6 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-b", "--buffer", type=int, default=64,
                 help="max buffer size")
 args = vars(ap.parse_args())
-
-# Define color boundaries in HSV color space
-redLower1 = (0, 120, 70)
-redUpper1 = (10, 255, 255)
-redLower2 = (170, 120, 70)
-redUpper2 = (180, 255, 255)
-greenLower = (40, 100, 100)
-greenUpper = (80, 255, 255)
-greenLower2 = (80, 100, 100)
-greenUpper2 = (90, 255, 255)
 
 resolutions = {
     "480p": (640, 480),
@@ -82,47 +73,9 @@ try:
         ret, frame = webcam.read()
         if not ret:
             break
-
+        
         frame = cv2.flip(frame, 1)
-        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-
-        Rmask1 = cv2.inRange(hsv, redLower1, redUpper1)
-        Rmask2 = cv2.inRange(hsv, redLower2, redUpper2)
-        redMask = cv2.bitwise_or(Rmask1, Rmask2)
-        Gmask1 = cv2.inRange(hsv, greenLower, greenUpper)
-        Gmask2 = cv2.inRange(hsv, greenLower2, greenUpper2)
-        greenMask = cv2.bitwise_or(Gmask1, Gmask2)
-
-        redMask = cv2.erode(redMask, None, iterations=2)
-        redMask = cv2.dilate(redMask, None, iterations=2)
-        greenMask = cv2.erode(greenMask, None, iterations=2)
-        greenMask = cv2.dilate(greenMask, None, iterations=2)
-
-        red_cnts, _ = cv2.findContours(redMask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        green_cnts, _ = cv2.findContours(greenMask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        left_ball_detected = False
-        right_ball_detected = False
-        left_ball_center = None
-        right_ball_center = None
-
-        # Assume in Lintasan A
-        if red_cnts:
-            largest_red = max(red_cnts, key=cv2.contourArea)
-            M = cv2.moments(largest_red)
-            if M["m00"] > 0:
-                left_ball_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-                left_ball_detected = True
-                cv2.circle(frame, left_ball_center, 5, (0, 0, 255), -1)
-
-        if green_cnts:
-            largest_green = max(green_cnts, key=cv2.contourArea)
-            M = cv2.moments(largest_green)
-            if M["m00"] > 0:
-                right_ball_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-                right_ball_detected = True
-                cv2.circle(frame, right_ball_center, 5, (0, 255, 0), -1)
+        left_ball_detected, right_ball_detected, left_ball_center, right_ball_center, frame = core.find_balls(frame)
 
         # When in Lintasan B, swap
         if (lintasan_b):
