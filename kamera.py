@@ -157,8 +157,6 @@ try:
 except KeyboardInterrupt:
     pass
 finally:
-    motorLeft.value = 0
-    motorRight.value = 0
     print("GPIO cleaned up.")
     webcam.release()
     cv2.destroyAllWindows()
