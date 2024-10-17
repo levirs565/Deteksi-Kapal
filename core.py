@@ -55,7 +55,7 @@ def find_balls(frame):
     if red_cnts:
         largest_red = max(red_cnts, key=cv2.contourArea)
 
-        if cv2.contourArea(largest_red) >= 1000:
+        if cv2.contourArea(largest_red) >= 500:
             M = cv2.moments(largest_red)
             if M["m00"] > 0:
                 red["center"] = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
@@ -75,7 +75,7 @@ def find_balls(frame):
     if green_cnts:
         largest_green = max(green_cnts, key=cv2.contourArea)
 
-        if cv2.contourArea(largest_green) >= 1000:
+        if cv2.contourArea(largest_green) >= 500:
             M = cv2.moments(largest_green)
             if M["m00"] > 0:
                 green["center"] = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
