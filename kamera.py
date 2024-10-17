@@ -31,6 +31,8 @@ ardu.write((f"b-{base_microsecond}").encode('utf-8'))
 trim_left = 0
 trim_right = 0
 base_speed = 50
+turn_diff = 3
+turn_slow_diff = 2
 
 # Set the camera resolution
 webcam = cv2.VideoCapture(0)
@@ -61,17 +63,21 @@ def set_direction(dir):
         set_motor_right(base_speed)
         print("Move forward")
     elif dir == -0.5:
-        print("Move left slowly")
-    elif dir == -1:
-        set_motor_left(base_speed - 3)
+        set_motor_left(base_speed - turn_slow_diff)
         set_motor_right(base_speed)
-        print("Move left")
+        print("Turn left slowly")
+    elif dir == -1:
+        set_motor_left(base_speed - turn_diff)
+        set_motor_right(base_speed)
+        print("Turn left")
     elif dir == 0.5:
-        print("Move right slowly")
+        set_motor_left(base_speed)
+        set_motor_right(base_speed - turn_slow_diff)
+        print("Turn right slowly")
     elif dir == 1:
         set_motor_left(base_speed)
-        set_motor_right(base_speed - 3)
-        print("Move right")
+        set_motor_right(base_speed - turn_diff)
+        print("Turn right")
 
 def take_photo():
     pass
