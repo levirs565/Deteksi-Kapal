@@ -43,6 +43,9 @@ def set_motor_right(duty_cycle):
     motorRight.value = max(0, min(duty_cycle / 100, 1))
     print(f"Set motor at pin {PINRight} speed to {duty_cycle}%")
 
+def get_gps_location():
+    return None
+
 lintasan_b = False
 green_left = False
 forward_duty_cycle_left = 50
@@ -69,6 +72,9 @@ def set_direction(dir):
 
 def take_photo():
     pass
+
+cog = core.CogCalculator(get_gps_location)
+last_turn_cog = None
 
 try:
     print("Starting motors...")
@@ -97,7 +103,10 @@ try:
         cv2.rectangle(frame, (0, 0), (left_margin, height), (255, 0, 0), 2)
         cv2.rectangle(frame, (right_margin, 0), (width, height), (255, 0, 0), 2)
 
+        cog.update()
+
         if left_ball["detected"] and right_ball["detected"]:
+            # Bisa saja salah
             if left_ball["center"][0] < left_margin and right_ball["center"][0] > right_margin: 
                 set_direction(0)
                 print("Two balls detected at normal place")
@@ -106,25 +115,36 @@ try:
                 green_left = not green_left
                 set_direction(0)
         elif left_ball["detected"]:
+            if not lintasan_b and len(left_ball["poly"]) == 4 and green_left:
+                take_photo()
+
             if left_ball["detected"] < left_margin:
                 set_direction(0)
                 print("Just red")
             else:
                 set_direction(1)
         elif right_ball["detected"]:
+            if lintasan_b and len(right_ball["poly"]) == 4 and not green_left:
+                take_photo()
+
             if right_ball["detected"][0] > right_margin:
                 set_direction(0)
                 print("Just green")
             else:
                 set_direction(-1)
         else:
-            print("Move until find ball by set direction")
-            set_direction(0.5 if lintasan_b else -0.5)
+            can_turn = True
+            if last_turn_cog is None:
+                last_turn_cog = cog.value
+            elif abs(cog.value - last_turn_cog) > 80:
+                can_turn = False
 
-        photo_ball = green_ball if lintasan_b else red_ball
-
-        if photo_ball["detected"] and len(photo_ball["poly"]) == 4:
-            take_photo()
+            if can_turn:
+                print("Move until find ball by slowly turn")
+                set_direction(0.5 if lintasan_b else -0.5)
+            else:
+                print("Move until find ball without turn")
+                set_direction(0)
 
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF

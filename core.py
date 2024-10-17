@@ -1,3 +1,4 @@
+import math
 import cv2
 import numpy as np
 
@@ -112,3 +113,29 @@ def apply_search_window(frame):
     mask[y_min:y_max,x_min:x_max] = frame[y_min:y_max,x_min:x_max]
 
     return mask
+
+# Calculate cog from pos1 to pos2
+def calculate_cog(pos1, pos2):
+    delta_lat = pos2["lat"] - pos1["lat"]
+    delta_lng = pos2["lng"] - pos1["lng"]
+
+    cog = math.atan2(delta_lng,delta_lat)
+
+    cog_degree = math.degrees(cog)
+
+    return cog_degree
+
+
+class CogCalculator:
+    def __init__(self, getter):
+        self.getter = getter
+        self.pos = getter()
+        self.available = False
+        self.value = None
+    
+    def update(self):
+        current_pos = self.getter()
+        if current_pos != self.pos:
+            self.available = True
+            self.value = calculate_cog(current_pos, self.pos)
+            self.pos = current_pos
