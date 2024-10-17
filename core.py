@@ -37,29 +37,60 @@ def find_balls(frame):
     green_cnts, _ = cv2.findContours(greenMask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     frame = draw_search_window(frame)
 
-    red_ball_detected = False
-    green_ball_detected = False
-    red_ball_center = None
-    green_ball_center = None
-
-    # Assume in Lintasan A
+    red = {
+        "detected": False,
+        "center": None,
+        "radius": 0,
+        "poly": 0,
+        "rect": None
+    }
+    green = {
+        "detected": False,
+        "center": None,
+        "radius": 0,
+        "poly": 0,
+        "rect": None
+    }
     if red_cnts:
         largest_red = max(red_cnts, key=cv2.contourArea)
-        M = cv2.moments(largest_red)
-        if M["m00"] > 0:
-            red_ball_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-            red_ball_detected = True
-            cv2.circle(frame, red_ball_center, 5, (0, 0, 255), -1)
+
+        if cv2.contourArea(largest_red) >= 1000:
+            M = cv2.moments(largest_red)
+            if M["m00"] > 0:
+                red["center"] = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                red["detected"] = True
+                red["rect"] = cv2.boundingRect(largest_red)
+                _, radius = cv2.minEnclosingCircle(largest_red)
+                red["radius"] = int(radius)
+                epsilon = 0.1 * cv2.arcLength(largest_red, True)
+                red["poly"] = cv2.approxPolyDP(largest_red, epsilon, True)
+                frame = cv2.putText(frame, str(len(red["poly"])), red["center"], cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                if len(red["poly"]) == 4:
+                    x,y,w,h = red["rect"]
+                    frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+                else:
+                    frame = cv2.circle(frame, red["center"], red["radius"], (0, 255, 0), 3)
 
     if green_cnts:
         largest_green = max(green_cnts, key=cv2.contourArea)
-        M = cv2.moments(largest_green)
-        if M["m00"] > 0:
-            green_ball_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-            green_ball_detected = True
-            cv2.circle(frame, green_ball_center, 5, (0, 255, 0), -1)
 
-    return (red_ball_detected, red_ball_center, green_ball_detected, green_ball_center, frame)
+        if cv2.contourArea(largest_green) >= 1000:
+            M = cv2.moments(largest_green)
+            if M["m00"] > 0:
+                green["center"] = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                green["detected"] = True
+                green["rect"] = cv2.boundingRect(largest_green)
+                _, radius = cv2.minEnclosingCircle(largest_green)
+                green["radius"] = int(radius)
+                epsilon = 0.1 * cv2.arcLength(largest_green, True)
+                green["poly"] = cv2.approxPolyDP(largest_green, epsilon, True)
+                if len(green["poly"]) == 4:
+                    x,y,w,h = green["rect"]
+                    frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+                else:
+                    frame = cv2.circle(frame, green["center"], green["radius"], (0, 255, 0), 3)
+
+    return (red, green, frame)
 
 def search_window_to_px(frame):
     height = frame.shape[0]

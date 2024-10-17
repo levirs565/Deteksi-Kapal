@@ -44,6 +44,7 @@ def set_motor_right(duty_cycle):
     print(f"Set motor at pin {PINRight} speed to {duty_cycle}%")
 
 lintasan_b = False
+green_left = False
 forward_duty_cycle_left = 50
 forward_duty_cycle_right = 41
 
@@ -53,14 +54,21 @@ def set_direction(dir):
         set_motor_left(forward_duty_cycle_left)
         set_motor_right(forward_duty_cycle_right)
         print("Move forward")
+    elif dir == -0.5:
+        print("Move left slowly")
     elif dir == -1:
         set_motor_left(forward_duty_cycle_left - 3)
         set_motor_right(forward_duty_cycle_right)
         print("Move left")
+    elif dir == 0.5:
+        print("Move right slowly")
     elif dir == 1:
         set_motor_left(forward_duty_cycle_left)
         set_motor_right(forward_duty_cycle_right - 3)
         print("Move right")
+
+def take_photo():
+    pass
 
 try:
     print("Starting motors...")
@@ -75,41 +83,48 @@ try:
             break
         
         frame = cv2.flip(frame, 1)
-        left_ball_detected, right_ball_detected, left_ball_center, right_ball_center, frame = core.find_balls(frame)
+        red_ball, green_ball, frame = core.find_balls(frame)
 
-        # When in Lintasan B, swap
-        if (lintasan_b):
-            left_ball_detected, right_ball_detected = right_ball_detected, left_ball_detected
-            left_ball_center, right_ball_center = right_ball_center, left_ball_center
+        left_ball = None
+        right_ball = None
+        if green_left:
+            left_ball = green_ball
+            right_ball = red_ball
+        else:
+            left_ball = red_ball
+            right_ball = green_ball
 
-        # Draw the margin areas
-        cv2.rectangle(frame, (0, 0), (left_margin, height), (255, 0, 0), 2)  # Left margin
-        cv2.rectangle(frame, (right_margin, 0), (width, height), (255, 0, 0), 2)  # Right margin
+        cv2.rectangle(frame, (0, 0), (left_margin, height), (255, 0, 0), 2)
+        cv2.rectangle(frame, (right_margin, 0), (width, height), (255, 0, 0), 2)
 
-        # Control the motors based on detection and margin logic
-        # merah kanan
-        if left_ball_detected and right_ball_detected:
-            if left_ball_center[0] < left_margin and right_ball_center[0] > right_margin:  # both in correct place
+        if left_ball["detected"] and right_ball["detected"]:
+            if left_ball["center"][0] < left_margin and right_ball["center"][0] > right_margin: 
                 set_direction(0)
                 print("Two balls detected at normal place")
-            else:  # wrong position
+            else:
+                print("Swapping ball position")
+                green_left = not green_left
                 set_direction(0)
-                print("Maybe both balls at center place or wrong combination color")
-        elif left_ball_detected:
-            if left_ball_center[0] < left_margin:  # Left margin
+        elif left_ball["detected"]:
+            if left_ball["detected"] < left_margin:
                 set_direction(0)
                 print("Just red")
             else:
                 set_direction(1)
-        elif right_ball_detected:
-            if right_ball_center[0] > right_margin:  # Right margin
+        elif right_ball["detected"]:
+            if right_ball["detected"][0] > right_margin:
                 set_direction(0)
                 print("Just green")
             else:
                 set_direction(-1)
         else:
-            set_direction(0)
-            print("Move until find ball")
+            print("Move until find ball by set direction")
+            set_direction(0.5 if lintasan_b else -0.5)
+
+        photo_ball = green_ball if lintasan_b else red_ball
+
+        if photo_ball["detected"] and len(photo_ball["poly"]) == 4:
+            take_photo()
 
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
