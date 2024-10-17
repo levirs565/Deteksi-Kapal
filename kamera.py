@@ -1,20 +1,18 @@
 import argparse
 import cv2
 import time
-from gpiozero import PWMOutputDevice
 import core
+import serial
 
-# Pin definitions for motors
-PINLeft = 4   # GPIO 4 corresponds to physical pin 7
-PINRight = 23  # for physical pin 16
-motorLeft = PWMOutputDevice(PINLeft, frequency=400)
-motorRight = PWMOutputDevice(PINRight, frequency=400)
 
 # Construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-b", "--buffer", type=int, default=64,
                 help="max buffer size")
 args = vars(ap.parse_args())
+
+ardu = serial.Serial("/dev/tty0")
+ardu.baudrate = 9600
 
 resolutions = {
     "480p": (640, 480),
@@ -27,6 +25,13 @@ resolutions = {
 selected_resolution = "480p"
 width, height = resolutions[selected_resolution]
 
+base_microsecond = 1600
+ardu.write((f"b-{base_microsecond}").encode('utf-8'))
+
+trim_left = 0
+trim_right = 0
+base_speed = 50
+
 # Set the camera resolution
 webcam = cv2.VideoCapture(0)
 webcam.set(3, width)  # Set the width
@@ -35,39 +40,37 @@ webcam.set(4, height)  # Set the height
 # Allow the camera to warm up
 time.sleep(2.0)
 
-def set_motor_left(duty_cycle):
-    motorLeft.value = max(0, min(duty_cycle / 100, 1))
-    print(f"Set motor at pin {PINLeft} speed to {duty_cycle}%")
+def set_motor_left(speed):
+    code_string = "ml-" + str(int(speed-trim_left))
+    ardu.write(code_string.encode('utf-8'))
 
-def set_motor_right(duty_cycle):
-    motorRight.value = max(0, min(duty_cycle / 100, 1))
-    print(f"Set motor at pin {PINRight} speed to {duty_cycle}%")
+def set_motor_right(speed):
+    code_string = "mr-" + str(int(speed-trim_left))
+    ardu.write(code_string.encode('utf-8'))
 
 def get_gps_location():
     return None
 
 lintasan_b = False
 green_left = False
-forward_duty_cycle_left = 50
-forward_duty_cycle_right = 41
 
 # 0 = forward, -1 = kiri, 1 = kanan
 def set_direction(dir):
     if dir == 0:
-        set_motor_left(forward_duty_cycle_left)
-        set_motor_right(forward_duty_cycle_right)
+        set_motor_left(base_speed)
+        set_motor_right(base_speed)
         print("Move forward")
     elif dir == -0.5:
         print("Move left slowly")
     elif dir == -1:
-        set_motor_left(forward_duty_cycle_left - 3)
-        set_motor_right(forward_duty_cycle_right)
+        set_motor_left(base_speed - 3)
+        set_motor_right(base_speed)
         print("Move left")
     elif dir == 0.5:
         print("Move right slowly")
     elif dir == 1:
-        set_motor_left(forward_duty_cycle_left)
-        set_motor_right(forward_duty_cycle_right - 3)
+        set_motor_left(base_speed)
+        set_motor_right(base_speed - 3)
         print("Move right")
 
 def take_photo():
