@@ -115,8 +115,7 @@ try:
         cog.update()
 
         if left_ball["detected"] and right_ball["detected"]:
-            # Bisa saja salah
-            if left_ball["center"][0] < left_margin and right_ball["center"][0] > right_margin: 
+            if left_ball["center"][0] < right_ball["center"][0]: 
                 set_direction(0)
                 print("Two balls detected at normal place")
             else:
