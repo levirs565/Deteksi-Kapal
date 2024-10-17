@@ -3,16 +3,11 @@ import cv2
 import time
 import core
 import serial
+import image_uploader
+import mission
 
-
-# Construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-b", "--buffer", type=int, default=64,
-                help="max buffer size")
-args = vars(ap.parse_args())
-
-ardu = serial.Serial("/dev/tty0")
-ardu.baudrate = 9600
+ardu = serial.Serial("COM6")
+ardu.baudrate = 2000000
 
 resolutions = {
     "480p": (640, 480),
@@ -25,13 +20,13 @@ resolutions = {
 selected_resolution = "480p"
 width, height = resolutions[selected_resolution]
 
-base_microsecond = 1600
+base_microsecond = 2200
 ardu.write((f"b-{base_microsecond}").encode('utf-8'))
 
 trim_left = 0
 trim_right = 0
-base_speed = 50
-turn_diff = 3
+base_speed = 100
+turn_diff = 25
 turn_slow_diff = 2
 
 # Set the camera resolution
@@ -42,16 +37,24 @@ webcam.set(4, height)  # Set the height
 # Allow the camera to warm up
 time.sleep(2.0)
 
+last_left_speed = 0
 def set_motor_left(speed):
+    global last_left_speed
+    if speed == last_left_speed: return
     code_string = "ml-" + str(int(speed-trim_left))
     ardu.write(code_string.encode('utf-8'))
+    last_left_speed = speed
 
+last_right_speed = 0
 def set_motor_right(speed):
+    global last_right_speed
+    if speed == last_right_speed: return
     code_string = "mr-" + str(int(speed-trim_left))
     ardu.write(code_string.encode('utf-8'))
+    last_right_speed = speed
 
 def get_gps_location():
-    return None
+    return core.json_get(f"{core.companionServerRoot}/gps")
 
 lintasan_b = False
 green_left = False
@@ -63,8 +66,8 @@ def set_direction(dir):
         set_motor_right(base_speed)
         print("Move forward")
     elif dir == -0.5:
-        set_motor_left(base_speed - turn_slow_diff)
-        set_motor_right(base_speed)
+        set_motor_left(base_speed - turn_diff)
+        set_motor_right(base_speed - turn_diff)
         print("Turn left slowly")
     elif dir == -1:
         set_motor_left(base_speed - turn_diff)
@@ -79,8 +82,14 @@ def set_direction(dir):
         set_motor_right(base_speed - turn_diff)
         print("Turn right")
 
-def take_photo():
-    pass
+def take_photo(frame):
+    image_uploader.upload_image(frame, "Atas")
+
+print("Waiting mission...")
+nama_lintasan = mission.wait_mission()["lintasan"]
+lintasan_b = nama_lintasan == "b" 
+mission.start_mission_end_listener()
+print(f"Mission started on lintasan {nama_lintasan}")
 
 cog = core.CogCalculator(get_gps_location)
 last_turn_cog = None
@@ -97,6 +106,7 @@ try:
         if not ret:
             break
         
+        orig_frame = frame.copy()
         frame = cv2.flip(frame, 1)
         red_ball, green_ball, frame = core.find_balls(frame)
 
@@ -122,20 +132,21 @@ try:
                 print("Swapping ball position")
                 green_left = not green_left
                 set_direction(0)
+                time.sleep(5)
         elif left_ball["detected"]:
             if not lintasan_b and len(left_ball["poly"]) == 4 and green_left:
-                take_photo()
+                take_photo(orig_frame)
 
-            if left_ball["detected"] < left_margin:
+            if left_ball["center"][0] < left_margin:
                 set_direction(0)
-                print("Just red")
+                print("Just on left")
             else:
                 set_direction(1)
         elif right_ball["detected"]:
             if lintasan_b and len(right_ball["poly"]) == 4 and not green_left:
-                take_photo()
+                take_photo(orig_frame)
 
-            if right_ball["detected"][0] > right_margin:
+            if right_ball["center"][0] > right_margin:
                 set_direction(0)
                 print("Just green")
             else:
@@ -155,7 +166,9 @@ try:
                 set_direction(0)
 
         cv2.imshow("Frame", frame)
-        key = cv2.waitKey(1) & 0xFF
+        if mission.mission_end.wait(0.05):
+            break
+        key = cv2.waitKey(50) & 0xFF
         if key == ord("q"):
             break
 
@@ -165,3 +178,5 @@ finally:
     print("GPIO cleaned up.")
     webcam.release()
     cv2.destroyAllWindows()
+    mission.stop_mission_end_listener()
+    image_uploader.shutdown()
