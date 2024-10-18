@@ -5,6 +5,7 @@ import core
 import serial
 import image_uploader
 import mission
+import time
 
 ardu = serial.Serial("COM6")
 ardu.baudrate = 2000000
@@ -30,9 +31,13 @@ turn_diff = 25
 turn_slow_diff = 2
 
 # Set the camera resolution
-webcam = cv2.VideoCapture(0)
-webcam.set(3, width)  # Set the width
-webcam.set(4, height)  # Set the height
+above_web_cam = cv2.VideoCapture(0)
+above_web_cam.set(3, width)
+above_web_cam.set(4, height)
+
+below_web_cam = cv2.VideoCapture(0)
+below_web_cam.set(3, width)
+below_web_cam.set(4, height)
 
 # Allow the camera to warm up
 time.sleep(2.0)
@@ -82,8 +87,27 @@ def set_direction(dir):
         set_motor_right(base_speed - turn_diff)
         print("Turn right")
 
+
+next_below_photo_time = None
+below_photo_need = 0
 def take_photo(frame):
     image_uploader.upload_image(frame, "Atas")
+    next_below_photo_time = time.time()
+    below_photo_need = 10
+
+def try_take_below_photo():
+    if next_below_photo_time is None or below_photo_need == 0: return
+
+    if time.time() < next_below_photo_time: return
+
+    next_below_photo_time = time.time() + 1
+    below_photo_need -= 1
+
+    ret, frame = below_web_cam.read()
+    if not ret:
+        print("Take below image failed")
+        return
+    image_uploader.upload_image(frame, "Bawah")
 
 print("Waiting mission...")
 
@@ -106,7 +130,7 @@ try:
     right_margin = int(width * 0.8)
 
     while True:
-        ret, frame = webcam.read()
+        ret, frame = above_web_cam.read()
         if not ret:
             break
         
@@ -178,6 +202,9 @@ try:
                 set_direction(0)
 
         cv2.imshow("Frame", frame)
+        
+        try_take_below_photo()
+        
         if mission.mission_end.wait(0.05):
             break
         key = cv2.waitKey(50) & 0xFF
@@ -188,7 +215,7 @@ except KeyboardInterrupt:
     pass
 finally:
     print("GPIO cleaned up.")
-    webcam.release()
+    above_web_cam.release()
     cv2.destroyAllWindows()
     mission.stop_mission_end_listener()
     image_uploader.shutdown()
