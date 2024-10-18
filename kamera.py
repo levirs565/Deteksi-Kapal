@@ -91,11 +91,13 @@ def set_direction(dir):
 next_below_photo_time = None
 below_photo_need = 0
 def take_photo(frame):
+    global next_below_photo_time, below_photo_need
     image_uploader.upload_image(frame, "Atas")
     next_below_photo_time = time.time()
     below_photo_need = 10
 
 def try_take_below_photo():
+    global next_below_photo_time, below_photo_need
     if next_below_photo_time is None or below_photo_need == 0: return
 
     if time.time() < next_below_photo_time: return
