@@ -86,8 +86,12 @@ def take_photo(frame):
     image_uploader.upload_image(frame, "Atas")
 
 print("Waiting mission...")
+
 nama_lintasan = mission.wait_mission()["lintasan"]
 lintasan_b = nama_lintasan == "b" 
+green_left = lintasan_b
+has_found_ball = False
+
 mission.start_mission_end_listener()
 print(f"Mission started on lintasan {nama_lintasan}")
 
@@ -125,6 +129,8 @@ try:
         cog.update()
 
         if left_ball["detected"] and right_ball["detected"]:
+            last_turn_cog = None
+            has_found_ball = True
             if left_ball["center"][0] < right_ball["center"][0]: 
                 set_direction(0)
                 print("Two balls detected at normal place")
@@ -134,6 +140,8 @@ try:
                 set_direction(0)
                 time.sleep(5)
         elif left_ball["detected"]:
+            last_turn_cog = None
+            has_found_ball = True
             if not lintasan_b and len(left_ball["poly"]) == 4 and green_left:
                 take_photo(orig_frame)
 
@@ -143,6 +151,8 @@ try:
             else:
                 set_direction(1)
         elif right_ball["detected"]:
+            last_turn_cog = None
+            has_found_ball = True
             if lintasan_b and len(right_ball["poly"]) == 4 and not green_left:
                 take_photo(orig_frame)
 
@@ -153,7 +163,9 @@ try:
                 set_direction(-1)
         else:
             can_turn = True
-            if last_turn_cog is None:
+            if not has_found_ball:
+                can_turn = False
+            elif last_turn_cog is None:
                 last_turn_cog = cog.value
             elif abs(cog.value - last_turn_cog) > 80:
                 can_turn = False
