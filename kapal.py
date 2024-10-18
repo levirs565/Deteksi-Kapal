@@ -1,4 +1,3 @@
-import argparse
 import cv2
 import time
 import core
@@ -6,9 +5,9 @@ import serial
 import image_uploader
 import mission
 import time
+import motor_controller
 
-ardu = serial.Serial("COM6")
-ardu.baudrate = 2000000
+motor_controller.start()
 
 resolutions = {
     "480p": (640, 480),
@@ -21,71 +20,23 @@ resolutions = {
 selected_resolution = "480p"
 width, height = resolutions[selected_resolution]
 
-base_microsecond = 2200
-ardu.write((f"b-{base_microsecond}").encode('utf-8'))
-
-trim_left = 0
-trim_right = 0
-base_speed = 100
-turn_diff = 25
-turn_slow_diff = 2
-
 # Set the camera resolution
 above_web_cam = cv2.VideoCapture(0)
 above_web_cam.set(3, width)
 above_web_cam.set(4, height)
 
-below_web_cam = cv2.VideoCapture(0)
+below_web_cam = cv2.VideoCapture(1)
 below_web_cam.set(3, width)
 below_web_cam.set(4, height)
 
 # Allow the camera to warm up
 time.sleep(2.0)
 
-last_left_speed = 0
-def set_motor_left(speed):
-    global last_left_speed
-    if speed == last_left_speed: return
-    code_string = "ml-" + str(int(speed-trim_left))
-    ardu.write(code_string.encode('utf-8'))
-    last_left_speed = speed
-
-last_right_speed = 0
-def set_motor_right(speed):
-    global last_right_speed
-    if speed == last_right_speed: return
-    code_string = "mr-" + str(int(speed-trim_left))
-    ardu.write(code_string.encode('utf-8'))
-    last_right_speed = speed
-
 def get_gps_location():
     return core.json_get(f"{core.companionServerRoot}/gps")
 
 lintasan_b = False
 green_left = False
-
-# 0 = forward, -1 = kiri, 1 = kanan
-def set_direction(dir):
-    if dir == 0:
-        set_motor_left(base_speed)
-        set_motor_right(base_speed)
-        print("Move forward")
-    elif dir == -0.5:
-        set_motor_left(base_speed - turn_diff)
-        set_motor_right(base_speed - turn_diff)
-        print("Turn left slowly")
-    elif dir == -1:
-        set_motor_left(base_speed - turn_diff)
-        set_motor_right(base_speed)
-        print("Turn left")
-    elif dir == 0.5:
-        set_motor_left(base_speed)
-        set_motor_right(base_speed - turn_slow_diff)
-        print("Turn right slowly")
-    elif dir == 1:
-        set_motor_left(base_speed)
-        set_motor_right(base_speed - turn_diff)
-        print("Turn right")
 
 next_below_photo_time = None
 below_photo_need = 0
@@ -157,13 +108,12 @@ try:
             last_turn_cog = None
             has_found_ball = True
             if left_ball["center"][0] < right_ball["center"][0]: 
-                set_direction(0)
+                motor_controller.set_direction(0)
                 print("Two balls detected at normal place")
             else:
                 print("Swapping ball position")
                 green_left = not green_left
-                set_direction(0)
-                time.sleep(5)
+                motor_controller.set_direction(0)
         elif left_ball["detected"]:
             last_turn_cog = None
             has_found_ball = True
@@ -171,10 +121,10 @@ try:
                 take_photo(orig_frame)
 
             if left_ball["center"][0] < left_margin:
-                set_direction(0)
+                motor_controller.set_direction(0)
                 print("Just on left")
             else:
-                set_direction(1)
+                motor_controller.set_direction(1)
         elif right_ball["detected"]:
             last_turn_cog = None
             has_found_ball = True
@@ -182,10 +132,10 @@ try:
                 take_photo(orig_frame)
 
             if right_ball["center"][0] > right_margin:
-                set_direction(0)
-                print("Just green")
+                motor_controller.set_direction(0)
+                print("Just on right")
             else:
-                set_direction(-1)
+                motor_controller.set_direction(-1)
         else:
             can_turn = True
             if not has_found_ball:
@@ -197,10 +147,10 @@ try:
 
             if can_turn:
                 print("Move until find ball by slowly turn")
-                set_direction(0.5 if lintasan_b else -0.5)
+                motor_controller.set_direction(0.5 if lintasan_b else -0.5)
             else:
                 print("Move until find ball without turn")
-                set_direction(0)
+                motor_controller.set_direction(0)
 
         cv2.imshow("Frame", frame)
         
