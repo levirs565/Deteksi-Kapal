@@ -140,8 +140,9 @@ class CogCalculator:
     def update(self):
         current_pos = self.getter()
         if current_pos != self.pos:
-            self.available = True
-            self.value = calculate_cog(current_pos, self.pos)
+            if not self.pos is None:
+                self.available = True
+                self.value = calculate_cog(current_pos, self.pos)
             self.pos = current_pos
 
 def json_get(url):

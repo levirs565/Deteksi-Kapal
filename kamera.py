@@ -87,7 +87,6 @@ def set_direction(dir):
         set_motor_right(base_speed - turn_diff)
         print("Turn right")
 
-
 next_below_photo_time = None
 below_photo_need = 0
 def take_photo(frame):
