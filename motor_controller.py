@@ -1,35 +1,30 @@
 import serial
-
-ardu = None
+import serial_worker
 
 def start():
-    global ardu
-    ardu = serial.Serial("COM6")
-    ardu.baudrate = 2000000
-
     base_microsecond = 2200
-    ardu.write((f"b-{base_microsecond}").encode('utf-8'))
+    serial_worker.set_motor_base_speed(base_microsecond)
 
 trim_left = 0
 trim_right = 0
 base_speed = 100
-turn_diff = 25
-turn_slow_diff = 2
+turn_diff = 100
+turn_slow_diff = 10
 
 last_left_speed = 0
 def set_motor_left(speed):
     global last_left_speed
     if speed == last_left_speed: return
-    code_string = "ml-" + str(int(speed-trim_left))
-    ardu.write(code_string.encode('utf-8'))
+    print("Changing left speed")
+    serial_worker.set_motor_left_speed(speed)
     last_left_speed = speed
 
 last_right_speed = 0
 def set_motor_right(speed):
     global last_right_speed
     if speed == last_right_speed: return
-    code_string = "mr-" + str(int(speed-trim_left))
-    ardu.write(code_string.encode('utf-8'))
+    print("Changing right speed")
+    serial_worker.set_motor_right_speed(speed)
     last_right_speed = speed
 
 
@@ -56,3 +51,6 @@ def set_direction(dir):
         set_motor_right(base_speed - turn_diff)
         print("Turn right")
 
+def stop():
+    set_motor_left(0)
+    set_motor_right(0)

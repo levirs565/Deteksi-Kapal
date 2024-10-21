@@ -1,12 +1,14 @@
 import cv2
 import time
 import core
-import serial
 import image_uploader
 import mission
 import time
 import motor_controller
+import serial_worker
+import gps_uploader
 
+serial_worker.start()
 motor_controller.start()
 
 resolutions = {
@@ -169,4 +171,6 @@ finally:
     above_web_cam.release()
     cv2.destroyAllWindows()
     mission.stop_mission_end_listener()
+    serial_worker.shutdown()
+    gps_uploader.shutdown()
     image_uploader.shutdown()
