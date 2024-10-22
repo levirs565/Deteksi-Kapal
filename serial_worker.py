@@ -9,9 +9,9 @@ gps_data = None
 gps_lock = threading.Lock()
 
 motor_lock = threading.Lock()
-motor_base_speed = 0
-motor_left_speed = 0
-motor_right_speed = 0
+motor_base_speed = None
+motor_left_speed = None
+motor_right_speed = None
 
 def worker():
     global gps_data, motor_base_speed, motor_left_speed, motor_right_speed
@@ -32,19 +32,22 @@ def worker():
             if thread_kill.wait(0.001):
                 break
 
-            command = ardu.read_until(b"\n").decode("utf-8")
-            gpsData = command.split(",", 3)
-            if len(gpsData) != 3:
+            command = ardu.read_until(b"\n").decode("utf-8").strip()
+            splitted = command.split(",", 3)
+            if len(command) != 0:
                 print(f"Arduino Message: {command}")
-            else:
-                lat, lng, speed = gpsData
-                with gps_lock:
-                    gps_data = {
+            
+            if len(splitted) == 3:
+                lat, lng, speed = splitted
+                data = {
                         "lat": float(lat),
                         "lng": float(lng),
                         "speed": float(speed)
                     }
-                    gps_uploader.upload_gps(gps_data)
+                with gps_lock:
+                    gps_data = data
+                
+                gps_uploader.upload_gps(gps_data)
 
             with motor_lock:
                 if last_motor_base_speed != motor_base_speed:

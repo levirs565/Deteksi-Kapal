@@ -17,7 +17,7 @@ greenUpper2 = (90, 255, 255)
 searchWindowMin = (0, 0.4)
 searchWindowMax = (1, 1)
 
-companionServerRoot = "http://3.22.140.94:3000"
+companionServerRoot = "http://localhost:3000"
 
 def find_balls(frame):
     blurred = cv2.GaussianBlur(frame, (11, 11), 0)
@@ -144,6 +144,3 @@ class CogCalculator:
                 self.available = True
                 self.value = calculate_cog(current_pos, self.pos)
             self.pos = current_pos
-
-def json_get(url):
-    return json.loads(requests.get(url).text)

@@ -1,6 +1,6 @@
 from firebase_admin import credentials
 from firebase_admin import storage
-from firebase_admin import firestore
+from firebase_admin import firestore_async
 from dotenv import load_dotenv
 import firebase_admin
 import os
@@ -13,5 +13,8 @@ firebase_admin.initialize_app(cred, {
 })
 
 bucket = storage.bucket()
-db = firestore.client()
+db = firestore_async.client()
 gpsCollection = db.collection("gps")
+
+def rebuild_db():
+    db = firestore_async.client()
