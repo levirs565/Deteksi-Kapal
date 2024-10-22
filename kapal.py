@@ -156,7 +156,7 @@ try:
         
         try_take_below_photo()
         
-        if mission.mission_end.wait(0.05):
+        if io_worker.mission_end.wait(0.05):
             break
         key = cv2.waitKey(50) & 0xFF
         if key == ord("q"):
