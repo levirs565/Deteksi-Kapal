@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 source ./.venv/bin/activate
-sudo python3 ./kapal.py
+python3 ./kapal.py
