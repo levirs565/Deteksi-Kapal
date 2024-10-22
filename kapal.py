@@ -1,12 +1,10 @@
 import cv2
 import time
 import core
-import image_uploader
-import mission
+import io_worker
 import time
 import motor_controller
 import serial_worker
-import gps_uploader
 
 serial_worker.start()
 motor_controller.start()
@@ -44,7 +42,7 @@ next_below_photo_time = None
 below_photo_need = 0
 def take_photo(frame):
     global next_below_photo_time, below_photo_need
-    image_uploader.upload_image(frame, "Atas")
+    io_worker.upload_image(frame, "Atas")
     next_below_photo_time = time.time()
     below_photo_need = 10
 
@@ -61,16 +59,16 @@ def try_take_below_photo():
     if not ret:
         print("Take below image failed")
         return
-    image_uploader.upload_image(frame, "Bawah")
+    io_worker.upload_image(frame, "Bawah")
 
 print("Waiting mission...")
 
-nama_lintasan = mission.wait_mission()["lintasan"]
+nama_lintasan = io_worker.wait_mission()["lintasan"]
 lintasan_b = nama_lintasan == "b" 
 green_left = lintasan_b
 has_found_ball = False
 
-mission.start_mission_end_listener()
+io_worker.start()
 print(f"Mission started on lintasan {nama_lintasan}")
 
 cog = core.CogCalculator(get_gps_location)
@@ -169,8 +167,7 @@ except KeyboardInterrupt:
 finally:
     print("GPIO cleaned up.")
     above_web_cam.release()
+    below_web_cam.release()
     cv2.destroyAllWindows()
-    mission.stop_mission_end_listener()
     serial_worker.shutdown()
-    gps_uploader.shutdown()
-    image_uploader.shutdown()
+    io_worker.shutdown()
