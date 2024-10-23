@@ -27,23 +27,28 @@ void setup() {
   Serial.println("M-READY");
   Serial.setTimeout(10);
 }
+
 String input_string, motor_command;
 int base_speed = 2200, motor1_speed, motor2_speed;
 float value;
+
+long last_gps_update = 0;
+
 void loop() {
   extract_command();
   while (Serial1.available() > 0) {
     char c = Serial1.read();
     gps.encode(c);  // Encode GPS data
   }
-
-  if (gps.location.isUpdated() && gps.location.isValid()) {
-    Serial.print(gps.location.lat(), 6);
-    Serial.print(",");
-    Serial.print(gps.location.lng(), 6);
-    Serial.print(",");
-    Serial.println(gps.speed.mps());
-  }
+  if (milis()-last_gps_update >= 5000 || last_gps_update = 0) 
+    if (gps.location.isUpdated() && gps.location.isValid()) {
+      Serial.print(gps.location.lat(), 6);
+      Serial.print(",");
+      Serial.print(gps.location.lng(), 6);
+      Serial.print(",");
+      Serial.println(gps.speed.mps());
+      last_gps_update = milis();
+    }
   // put your main code here, to run repeatedly:
   
   motor_command.trim();
