@@ -53,10 +53,9 @@ def worker():
 
             command = reader.readLine()
             splitted = command.split(",", 3)
-            if len(command) != 0:
+            if len(splitted) != 3:
                 print(f"Arduino Message: {command}")
-            
-            if len(splitted) == 3:
+            else:
                 lat, lng, speed = splitted
                 data = {
                         "lat": float(lat),
