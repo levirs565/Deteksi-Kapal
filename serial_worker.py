@@ -2,6 +2,22 @@ import threading
 import io_worker
 import serial
 
+class SerialIOReader:
+    def __init__(self, serial: serial.Serial) -> None:
+        self.serial = serial
+        self.lastInput = ""
+
+    def readLine(self) -> str:
+        self.lastInput += self.serial.read_until("\n").decode("utf-8")
+
+        if self.lastInput.find("\n") == -1:
+            return ""
+        
+
+        res = self.lastInput[:self.lastInput.index("\n")].strip()
+        self.lastInput = self.lastInput[self.lastInput.index("\n")+1:]
+        return res
+
 enable_serial = True
 
 thread = None
@@ -25,6 +41,7 @@ def worker():
     try:
         ardu = serial.Serial("COM6")
         ardu.baudrate = 2000000
+        reader = SerialIOReader(ardu)
 
         def send_command(command):
             ardu.write(f"{command}\n".encode("utf-8"))
@@ -34,7 +51,7 @@ def worker():
             if thread_kill.wait(0.001):
                 break
 
-            command = ardu.read_until(b"\n").decode("utf-8").strip()
+            command = reader.readLine()
             splitted = command.split(",", 3)
             if len(command) != 0:
                 print(f"Arduino Message: {command}")
