@@ -178,6 +178,11 @@ try:
                 if key == ord("q"):
                     force_close = True
                     break
+        except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            print("An unexpected exception occurred: " , e)
+            exit(0)
         finally:
             cv2.destroyAllWindows()
             motor_controller.stop()
