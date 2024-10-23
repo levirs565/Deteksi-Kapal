@@ -11,8 +11,10 @@ import core
 import json
 import requests
 
+enable_internet = True
+
 pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-thread = None
+thread_kill = threading.Event()
 mission_end = threading.Event()
 
 def wait_mission():
@@ -23,11 +25,12 @@ def wait_mission():
 
 async def upload_gps_task(gps_data):
     print("Start uploading gps")
-    await firebase_util.gpsCollection.add({
-        "loc": [gps_data["lat"], gps_data["lng"]],
-        "speed": gps_data["speed"],
-        "timestamp": firestore_async.firestore.SERVER_TIMESTAMP
-    })
+    if enable_internet:
+        await firebase_util.gpsCollection.add({
+            "loc": firestore_async.firestore.GeoPoint(gps_data["lat"], gps_data["lng"]),
+            "speed": gps_data["speed"],
+            "timestamp": firestore_async.firestore.SERVER_TIMESTAMP
+        })
     print("Uploading gps finished")
 
 def upload_image_internal(image, folder):
@@ -36,8 +39,9 @@ def upload_image_internal(image, folder):
         print("Encode failed")
         return
     name = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-    blob = firebase_util.bucket.blob("{}/{}".format(folder, name))
-    blob.upload_from_string(buffer.tobytes(), content_type="image/jpeg")
+    if enable_internet:
+        blob = firebase_util.bucket.blob("{}/{}".format(folder, name))
+        blob.upload_from_string(buffer.tobytes(), content_type="image/jpeg")
 
 
 async def upload_image_task(image, folder):
@@ -47,6 +51,7 @@ async def upload_image_task(image, folder):
 
 async def mission_stop_worker():
     global mission_end
+    print("Mission stop listener started")
     async with aiohttp.ClientSession() as session:
         while True:
             async with session.get(f"{core.companionServerRoot}/mission") as resp:
@@ -58,10 +63,10 @@ async def mission_stop_worker():
             if mission_end.is_set():
                 break
             await asyncio.sleep(1)
+    print("Mission stop listener stopped")
 
 task_queue = queue.Queue()
 async def worker_async():
-    asyncio.create_task(mission_stop_worker())
     while True:
         if not task_queue.empty():
             task = task_queue.get()
@@ -69,23 +74,25 @@ async def worker_async():
                 asyncio.create_task(upload_gps_task(task["gps"]))
             if "image" in task:
                 asyncio.create_task(upload_image_task(task["image"], task["folder"]))
-        if mission_end.is_set():
+            if "mission_end" in task:
+                asyncio.create_task(mission_stop_worker())
+        if thread_kill.is_set():
             break
         await asyncio.sleep(0.1)
                 
-
 def worker():
     asyncio.run(worker_async())
     print("Closed")
 
+thread = threading.Thread(target=worker)
+
 def start():
     global thread
-    mission_end.clear()
     thread = threading.Thread(target=worker)
     thread.start()
 
 def shutdown():
-    mission_end.set()
+    thread_kill.set()
     thread.join()
 
 def upload_image(img, folder):
@@ -97,4 +104,10 @@ def upload_image(img, folder):
 def upload_gps(gps):
     task_queue.put({
         "gps": gps
+    })
+
+def start_mission_end_listener():
+    mission_end.clear()
+    task_queue.put({
+        "mission_end": True
     })

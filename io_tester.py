@@ -5,13 +5,17 @@ cam = cv2.VideoCapture(0)
 cam.set(3, 640)
 cam.set(4, 480)
 
-force_stop = False
-while not force_stop:
-    print("Wait mission")
-    io_worker.wait_mission()
-    io_worker.start()
+io_worker.start()
 
-    try:
+force_stop = False
+
+try:
+    while not force_stop:
+        print("Wait mission")
+        io_worker.wait_mission()
+        print("Mission started")
+        io_worker.start_mission_end_listener()
+
         while True:
             ret, frame = cam.read()
 
@@ -19,7 +23,7 @@ while not force_stop:
                 break
 
             print("A")
-            io_worker.upload_image(frame, "Test")
+            io_worker.upload_image(frame, "Bawah")
             io_worker.upload_gps({
                 "lat": 0,
                 "lng": 0,
@@ -33,5 +37,5 @@ while not force_stop:
 
             if io_worker.mission_end.wait(0.01):
                 break
-    finally:
-        io_worker.shutdown()
+finally:
+    io_worker.shutdown()

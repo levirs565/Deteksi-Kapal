@@ -1,6 +1,8 @@
 import threading
-import gps_uploader
+import io_worker
 import serial
+
+enable_serial = True
 
 thread = None
 thread_kill = threading.Event()
@@ -47,7 +49,7 @@ def worker():
                 with gps_lock:
                     gps_data = data
                 
-                gps_uploader.upload_gps(gps_data)
+                io_worker.upload_gps(gps_data)
 
             with motor_lock:
                 if last_motor_base_speed != motor_base_speed:
@@ -68,12 +70,14 @@ def worker():
 
 def start():
     global thread
-    thread = threading.Thread(target=worker)
-    thread.start()
+    if enable_serial:
+        thread = threading.Thread(target=worker)
+        thread.start()
 
 def shutdown():
     thread_kill.set()
-    thread.join()
+    if not thread is None:
+        thread.join()
 
 def set_motor_base_speed(speed):
     global motor_base_speed
