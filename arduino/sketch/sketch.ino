@@ -40,7 +40,7 @@ void loop() {
     char c = Serial1.read();
     gps.encode(c);  // Encode GPS data
   }
-  if (milis()-last_gps_update >= 5000 || last_gps_update = 0) 
+  if (milis()-last_gps_update >= 1000 || last_gps_update = 0) 
     if (gps.location.isUpdated() && gps.location.isValid()) {
       Serial.print(gps.location.lat(), 6);
       Serial.print(",");
