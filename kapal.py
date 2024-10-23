@@ -10,10 +10,9 @@ serial_worker.enable_serial = True
 io_worker.enable_internet = True
 
 serial_worker.start()
+time.sleep(5.0)
 motor_controller.start()
 io_worker.start()
-
-time.sleep(3.0)
 
 resolutions = {
     "480p": (640, 480),

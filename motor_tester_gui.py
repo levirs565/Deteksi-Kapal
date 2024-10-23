@@ -1,6 +1,13 @@
 import tkinter as tk
 import serial_worker
 import motor_controller
+import time
+
+serial_worker.enable_serial = False
+
+serial_worker.start()
+time.sleep(5)
+motor_controller.start()
 
 window = tk.Tk()
 
