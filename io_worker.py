@@ -16,11 +16,13 @@ enable_internet = True
 pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 thread_kill = threading.Event()
 mission_end = threading.Event()
+mission_end.set()
 
 def wait_mission():
     while True:
         mission = json.loads(requests.get(f"{core.companionServerRoot}/mission").text)
         if mission["started"]:
+            mission_end.clear()
             return mission
 
 async def upload_gps_task(gps_data):

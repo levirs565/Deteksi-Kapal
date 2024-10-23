@@ -66,7 +66,8 @@ def worker():
                 with gps_lock:
                     gps_data = data
                 
-                io_worker.upload_gps(gps_data)
+                if not io_worker.mission_end.is_set():
+                    io_worker.upload_gps(gps_data)
 
             with motor_lock:
                 if last_motor_base_speed != motor_base_speed:
