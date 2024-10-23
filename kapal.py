@@ -77,7 +77,6 @@ try:
         io_worker.start_mission_end_listener()
         lintasan_b = nama_lintasan == "b" 
         green_left = lintasan_b
-        green_left = not green_left
         has_found_ball = False
         start_mission_time = time.time()
 
@@ -85,6 +84,7 @@ try:
 
         cog = core.CogCalculator(get_gps_location)
         last_turn_cog = None
+        last_turn_time = None
 
         try:
             left_margin = int(width * 0.2)
@@ -115,6 +115,7 @@ try:
 
                 if left_ball["detected"] and right_ball["detected"]:
                     last_turn_cog = None
+                    last_turn_time = None
                     has_found_ball = True
                     if left_ball["center"][0] < right_ball["center"][0]: 
                         motor_controller.set_direction(0)
@@ -125,6 +126,7 @@ try:
                         motor_controller.set_direction(0)
                 elif left_ball["detected"]:
                     last_turn_cog = None
+                    last_turn_time = None
                     has_found_ball = True
                     if not lintasan_b and len(left_ball["poly"]) == 4 and green_left:
                         take_photo(orig_frame)
@@ -136,6 +138,7 @@ try:
                         motor_controller.set_direction(1)
                 elif right_ball["detected"]:
                     last_turn_cog = None
+                    last_turn_time = None
                     has_found_ball = True
                     if lintasan_b and len(right_ball["poly"]) == 4 and not green_left:
                         take_photo(orig_frame)
@@ -151,6 +154,7 @@ try:
                         can_turn = False
                     elif last_turn_cog is None:
                         last_turn_cog = cog.value
+                        last_turn_time = time.time()
                     elif abs(cog.value - last_turn_cog) > 80:
                         can_turn = False
 
@@ -161,6 +165,9 @@ try:
                         print("Move until find ball without turn")
                         motor_controller.set_direction(0)
 
+                    if time.time() - last_turn_time >= 10:
+                        break     
+ 
                 cv2.imshow("Frame", frame)
                 
                 try_take_below_photo()
@@ -174,6 +181,7 @@ try:
         finally:
             cv2.destroyAllWindows()
             motor_controller.stop()
+            io_worker.mission_end.set()
             time.sleep(2)
 except KeyboardInterrupt:
     pass
