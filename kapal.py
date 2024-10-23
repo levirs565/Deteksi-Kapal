@@ -148,7 +148,7 @@ try:
                         motor_controller.set_direction(-1)
                 else:
                     can_turn = True
-                    if not has_found_ball or time.time() - start_mission_time >= 10:
+                    if not has_found_ball or time.time() - start_mission_time < 10:
                         can_turn = False
                     elif last_turn_cog is None:
                         last_turn_cog = cog.value
