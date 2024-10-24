@@ -65,22 +65,22 @@ def onBaseSpeedChanged(x):
     motor_controller.save_config()
 
 def onLeftTrimChanged(x):
-    motor_controller.trim_left = x
+    motor_controller.trim_left = -x
     updateSpeed()
     motor_controller.save_config()
 
 def onRightTrimChanged(x):
-    motor_controller.trim_right = x
+    motor_controller.trim_right = -x
     updateSpeed()
     motor_controller.save_config()
 
 def onTurnLeftDiffChanged(x):
-    motor_controller.turn_left_diff = x
+    motor_controller.turn_left_diff = -x
     updateSpeed()
     motor_controller.save_config()
 
 def onTurnRightDiffChanged(x):
-    motor_controller.turn_right_diff = x
+    motor_controller.turn_right_diff = -x
     updateSpeed()
     motor_controller.save_config()
 
@@ -89,9 +89,9 @@ check.pack()
 
 createTrackbarFrame("Direction", 0, -1, 1, onDirectionChanged)
 createTrackbarFrame("Base Speed", motor_controller.base_speed, 0, 100, onBaseSpeedChanged)
-createTrackbarFrame("Left Trim", motor_controller.trim_left, 0, 50, onLeftTrimChanged)
-createTrackbarFrame("Right Trim", motor_controller.trim_right, 0, 50, onRightTrimChanged)
-createTrackbarFrame("Turn Left, Left Diff", motor_controller.turn_left_diff, 0, 50, onTurnLeftDiffChanged)
-createTrackbarFrame("Turn Right, Right Diff", motor_controller.turn_right_diff, 0, 50, onTurnRightDiffChanged)
+createTrackbarFrame("Left Trim", -motor_controller.trim_left, -50, 0, onLeftTrimChanged)
+createTrackbarFrame("Right Trim", -motor_controller.trim_right, -50, 0, onRightTrimChanged)
+createTrackbarFrame("Turn Left, Left Diff", -motor_controller.turn_left_diff, -50, 0, onTurnLeftDiffChanged)
+createTrackbarFrame("Turn Right, Right Diff", -motor_controller.turn_right_diff, -50, 0, onTurnRightDiffChanged)
 
 tk.mainloop()
