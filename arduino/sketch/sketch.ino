@@ -40,7 +40,7 @@ void loop() {
     char c = Serial1.read();
     gps.encode(c);  // Encode GPS data
   }
-  if (milis()-last_gps_update >= 1000 || last_gps_update = 0) 
+  if (milis()-last_gps_update >= 1000 || last_gps_update == 0) 
     if (gps.location.isUpdated() && gps.location.isValid()) {
       Serial.print(gps.location.lat(), 6);
       Serial.print(",");
@@ -82,8 +82,24 @@ void loop() {
   }
 }
 
+String last_buffer = ""
 void extract_command(){
-  input_string = Serial.readStringUntil('\n');
+  last_buffer += Serial.readStringUntil('\n');
+
+  int new_line_index = last_buffer.indexOf('\n');
+  
+  if (new_line_index == -1) {
+    input_string = "";
+  } else {
+    input_string = last_buffer.substring(0, new_line_index);
+
+    if (new_line_index + 1 == (int) last_buffer.length()) {
+      last_buffer = ""
+    } else {
+      last_buffer = last_buffer.substring(new_line_index + 1);
+    }
+  }
+
   input_string.trim();
   int delimiterIndex = input_string.indexOf('-');
   if (delimiterIndex != -1 ) {
