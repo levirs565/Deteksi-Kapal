@@ -67,6 +67,8 @@ def try_take_below_photo():
 
 force_close = False
 
+clahe = cv2.createCLAHE(clipLimit=10, tileGridSize=(8, 8))
+
 try:
     next_below_photo_time = None
     below_photo_need = 0
@@ -96,7 +98,12 @@ try:
                     break
                 
                 orig_frame = frame.copy()
-                frame = cv2.flip(frame, 1)
+                
+                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
+                lab[:,:,0] = clahe.apply(lab[:,:,0])
+
+                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+
                 red_ball, green_ball, frame = core.find_balls(frame)
 
                 left_ball = None
