@@ -22,7 +22,7 @@ resolutions = {
     "4K": (3840, 2160)
 }
 
-selected_resolution = "480p"
+selected_resolution = "720p"
 width, height = resolutions[selected_resolution]
 
 above_web_cam = cv2.VideoCapture(0)
@@ -113,7 +113,10 @@ try:
 
                 cog.update()
 
-                if left_ball["detected"] and right_ball["detected"]:
+                if time.time() - start_mission_time <= 3:
+                    print("Always move forward in start time")
+                    motor_controller.set_direction(0)
+                elif left_ball["detected"] and right_ball["detected"]:
                     last_turn_cog = None
                     last_turn_time = None
                     has_found_ball = True
@@ -165,7 +168,7 @@ try:
                         print("Move until find ball without turn")
                         motor_controller.set_direction(0)
 
-                    if time.time() - last_turn_time >= 10:
+                    if last_turn_time is not None and time.time() - last_turn_time >= 10:
                         break     
  
                 cv2.imshow("Frame", frame)

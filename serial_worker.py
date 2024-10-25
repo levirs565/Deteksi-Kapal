@@ -110,7 +110,3 @@ def set_motor_right_speed(speed):
     global motor_right_speed
     with motor_lock:
         motor_right_speed = speed
-
-def get_gps_data():
-    with gps_lock:
-        return get_gps_data()
